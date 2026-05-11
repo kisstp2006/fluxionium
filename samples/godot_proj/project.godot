@@ -13,10 +13,19 @@ config_version=4
 config/name="Godot Project Sample"
 config/description="This is a description in a godot project file"
 run/main_scene="res://main.tscn"
+boot_splash/bg_color=Color( 0.313726, 0.313726, 0.313726, 1 )
 
 [autoload]
 
 GlobalState="res://global_state.tscn"
+
+[display]
+
+window/size/width=1280
+window/size/height=720
+window/size/resizable=false
+window/size/borderless=true
+window/size/fullscreen=true
 
 [input]
 

@@ -23,5 +23,9 @@ project.lock.json
 .DS_Store
 Thumbs.db
 
+# Local debug / capture artefacts
+*.log
+run_*.txt
+
 # Godot editor cache (samples may carry these)
 **/.import/

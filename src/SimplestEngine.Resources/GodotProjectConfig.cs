@@ -37,6 +37,20 @@ public sealed class GodotProjectConfig
     /// <summary>Set from [rendering] environment/default_clear_color, if present.</summary>
     public Color? ClearColor { get; set; }
 
+    /// <summary>[application] boot_splash/bg_color. When set, the engine clears the
+    /// framebuffer to this color while autoloads + the main scene initialize, then
+    /// switches to <see cref="ClearColor"/> for normal play. Godot 3 parity.</summary>
+    public Color? BootSplashBgColor { get; set; }
+
+    /// <summary>[display] window/size/resizable. Godot default = true.</summary>
+    public bool WindowResizable { get; set; } = true;
+
+    /// <summary>[display] window/size/borderless. Godot default = false.</summary>
+    public bool WindowBorderless { get; set; }
+
+    /// <summary>[display] window/size/fullscreen. Godot default = false.</summary>
+    public bool WindowFullscreen { get; set; }
+
     public List<AutoloadEntry> Autoloads { get; } = new();
     public Dictionary<string, InputActionEntry> InputActions { get; } = new(StringComparer.Ordinal);
 
@@ -59,6 +73,8 @@ public sealed class GodotProjectConfig
                 ? Unquote(nm) : cfg.Title;
             cfg.MainScene = app.TryGetValue("run/main_scene", out var ms)
                 ? Unquote(ms) : null;
+            if (app.TryGetValue("boot_splash/bg_color", out var bs))
+                cfg.BootSplashBgColor = ParseColorCall(bs);
         }
 
         if (raw.TryGetValue("display", out var disp))
@@ -70,6 +86,9 @@ public sealed class GodotProjectConfig
             cfg.WindowHeight = ReadInt(disp,
                 "window/size/viewport_height",
                 "window/size/height") ?? cfg.WindowHeight;
+            cfg.WindowResizable  = ReadBool(disp, "window/size/resizable")  ?? cfg.WindowResizable;
+            cfg.WindowBorderless = ReadBool(disp, "window/size/borderless") ?? cfg.WindowBorderless;
+            cfg.WindowFullscreen = ReadBool(disp, "window/size/fullscreen") ?? cfg.WindowFullscreen;
         }
 
         if (raw.TryGetValue("autoload", out var auto))
@@ -164,6 +183,17 @@ public sealed class GodotProjectConfig
             if (bag.TryGetValue(k, out var s) && int.TryParse(s, NumberStyles.Integer,
                     CultureInfo.InvariantCulture, out var n))
                 return n;
+        return null;
+    }
+
+    /// <summary>Godot writes booleans as bare <c>true</c>/<c>false</c> tokens. We also
+    /// accept the capitalised forms in case a user (or older Godot) emits them.</summary>
+    private static bool? ReadBool(Dictionary<string, string> bag, string key)
+    {
+        if (!bag.TryGetValue(key, out var s)) return null;
+        var t = s.Trim();
+        if (string.Equals(t, "true",  StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(t, "false", StringComparison.OrdinalIgnoreCase)) return false;
         return null;
     }
 

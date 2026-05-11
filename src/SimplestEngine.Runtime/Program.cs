@@ -37,14 +37,29 @@ if (!cfg.HasDisplaySection && File.Exists(projectFile))
     Console.WriteLine($"[engine] no [display] section - falling back to Godot 3 default {windowW}x{windowH}");
 
 // --- 2. Bootstrap servers ---------------------------------------------------
-using var window = new Window(cfg.Title, windowW, windowH);
+var winOpts = new WindowOptions
+{
+    Resizable  = cfg.WindowResizable,
+    Borderless = cfg.WindowBorderless,
+    Fullscreen = cfg.WindowFullscreen,
+};
+using var window = new Window(cfg.Title, windowW, windowH, winOpts);
+Console.WriteLine($"[engine] window mode: fullscreen={cfg.WindowFullscreen} borderless={cfg.WindowBorderless} resizable={cfg.WindowResizable} size={window.Size.X}x{window.Size.Y}");
+
 using var backend = new VeldridBackend(window.GraphicsDevice);
 var renderingServer = new RenderingServerDefault(backend);
-if (cfg.ClearColor is { } cc)
+
+// Boot splash: per Godot 3 semantics paint the framebuffer with
+// [application] boot_splash/bg_color while autoloads + main scene initialize,
+// then switch to [rendering] environment/default_clear_color for normal play.
+if (cfg.BootSplashBgColor is { } splash)
 {
-    renderingServer.SetClearColor(cc);
-    Console.WriteLine($"[engine] applied [rendering] default_clear_color ({cc.R:0.##}, {cc.G:0.##}, {cc.B:0.##}, {cc.A:0.##})");
+    renderingServer.SetClearColor(splash);
+    window.PumpEvents();
+    renderingServer.Frame();
+    Console.WriteLine($"[engine] boot splash bg_color=({splash.R:0.##}, {splash.G:0.##}, {splash.B:0.##}, {splash.A:0.##}) painted");
 }
+
 var physics = new AetherBackend();
 var input = new InputServer();
 
@@ -140,6 +155,15 @@ else
     fallback.RenderingServer = renderingServer;
     tree.ChangeSceneTo(fallback);
     Console.WriteLine($"[engine] no main scene at {mainScenePath} - empty scene started.");
+}
+
+// Boot splash is over: switch to the runtime clear color (Godot's
+// [rendering] environment/default_clear_color, falls through to dark grey
+// when the project file omitted the key).
+if (cfg.ClearColor is { } cc)
+{
+    renderingServer.SetClearColor(cc);
+    Console.WriteLine($"[engine] applied [rendering] default_clear_color ({cc.R:0.##}, {cc.G:0.##}, {cc.B:0.##}, {cc.A:0.##})");
 }
 
 // --- 5. Main loop -----------------------------------------------------------

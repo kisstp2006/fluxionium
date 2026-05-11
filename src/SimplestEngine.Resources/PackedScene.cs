@@ -141,7 +141,12 @@ public sealed class PackedScene : Resource
 
             if (string.IsNullOrEmpty(path)) continue;
 
-            if (type == "Script")
+            // Godot 3 sometimes rewrites `.lua` / unknown-language ext_resources to
+            // type="TextFile" when the file opens in its editor (since Godot has no
+            // native Lua importer). We still want the engine to treat any source-file
+            // ext_resource as a Script — match by extension when the type label
+            // shifts on us.
+            if (type == "Script" || IsScriptPath(path))
             {
                 _extResources[id] = LoadScriptResource(path, rp);
             }
@@ -182,6 +187,13 @@ public sealed class PackedScene : Resource
             return new ScriptSourceResource(src, lang, abs);
         }
         return null;
+    }
+
+    private static bool IsScriptPath(string? path)
+    {
+        if (string.IsNullOrEmpty(path)) return false;
+        var ext = System.IO.Path.GetExtension(path).ToLowerInvariant();
+        return ext is ".lua" or ".gd" or ".cs";
     }
 
     private string ResolveScriptPath(string path)
