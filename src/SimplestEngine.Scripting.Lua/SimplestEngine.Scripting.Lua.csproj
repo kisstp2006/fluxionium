@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>SimplestEngine.Scripting.Lua</RootNamespace>
+    <AssemblyName>SimplestEngine.Scripting.Lua</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MoonSharp" Version="2.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimplestEngine.Core\SimplestEngine.Core.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Abi\SimplestEngine.Abi.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Scripting\SimplestEngine.Scripting.csproj" />
+  </ItemGroup>
+</Project>

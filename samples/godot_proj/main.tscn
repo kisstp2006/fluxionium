@@ -1,0 +1,56 @@
+[gd_scene load_steps=3 format=2]
+
+[ext_resource path="res://player.png" type="Texture" id=2]
+[ext_resource path="res://player.lua" type="Script" id=3]
+
+[node name="World" type="Node2D"]
+
+[node name="BgPanel" type="ColorRect" parent="."]
+margin_left = 491.0
+margin_top = 233.0
+margin_right = 676.0
+margin_bottom = 492.0
+color = Color( 0.13, 0.16, 0.22, 1 )
+
+[node name="Block1" type="ColorRect" parent="."]
+margin_left = 267.0
+margin_top = 130.0
+margin_right = 416.0
+margin_bottom = 287.0
+color = Color( 0.82, 0.32, 0.32, 1 )
+
+[node name="Block2" type="ColorRect" parent="."]
+margin_left = 767.0
+margin_top = 128.0
+margin_right = 892.0
+margin_bottom = 257.0
+color = Color( 0.3, 0.72, 0.38, 1 )
+
+[node name="Block3" type="ColorRect" parent="."]
+margin_left = 230.0
+margin_top = 348.0
+margin_right = 319.0
+margin_bottom = 475.0
+color = Color( 0.35, 0.55, 0.95, 1 )
+
+[node name="Player" type="Sprite" parent="."]
+position = Vector2( 120, 360 )
+scale = Vector2( 4, 4 )
+texture = ExtResource( 2 )
+script = ExtResource( 3 )
+
+[node name="UnknownAnimator" type="AnimationPlayer" parent="."]
+
+[node name="Title" type="Label" parent="."]
+margin_left = 54.0
+margin_top = 82.0
+margin_right = 395.0
+margin_bottom = 96.0
+text = "GODOT PROJECT LOADED - WASD MOVE  SPACE JUMP"
+
+[node name="Subtitle" type="Label" parent="."]
+margin_left = 22.0
+margin_top = 572.0
+margin_right = 457.0
+margin_bottom = 586.0
+text = "PLACEHOLDERNODE FOR ANIMATIONPLAYER (UNSUPPORTED IN V1)"

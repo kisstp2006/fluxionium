@@ -1,0 +1,27 @@
+# Build
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE
+.vs/
+.idea/
+*.rsuser
+*.DotSettings.user
+
+# NuGet
+*.nupkg
+**/packages/
+project.lock.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Godot editor cache (samples may carry these)
+**/.import/

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>SimplestEngine.Abi</RootNamespace>
+    <AssemblyName>SimplestEngine.Abi</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimplestEngine.Core\SimplestEngine.Core.csproj" />
+  </ItemGroup>
+</Project>

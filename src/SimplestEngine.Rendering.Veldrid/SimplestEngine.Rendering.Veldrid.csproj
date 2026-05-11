@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>SimplestEngine.Rendering.Veldrid</RootNamespace>
+    <AssemblyName>SimplestEngine.Rendering.Veldrid</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Veldrid" Version="4.9.0" />
+    <PackageReference Include="Veldrid.StartupUtilities" Version="4.9.0" />
+    <PackageReference Include="Veldrid.SPIRV" Version="1.0.15" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimplestEngine.Core\SimplestEngine.Core.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Abi\SimplestEngine.Abi.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Servers\SimplestEngine.Servers.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SimplestEngine.Abi/SimplestEngine.Abi.csproj" />
+    <Project Path="src/SimplestEngine.Core/SimplestEngine.Core.csproj" />
+    <Project Path="src/SimplestEngine.Physics.Aether/SimplestEngine.Physics.Aether.csproj" />
+    <Project Path="src/SimplestEngine.Platform/SimplestEngine.Platform.csproj" />
+    <Project Path="src/SimplestEngine.Rendering.Veldrid/SimplestEngine.Rendering.Veldrid.csproj" />
+    <Project Path="src/SimplestEngine.Resources/SimplestEngine.Resources.csproj" />
+    <Project Path="src/SimplestEngine.Runtime/SimplestEngine.Runtime.csproj" />
+    <Project Path="src/SimplestEngine.Scene/SimplestEngine.Scene.csproj" />
+    <Project Path="src/SimplestEngine.Scripting.Lua/SimplestEngine.Scripting.Lua.csproj" />
+    <Project Path="src/SimplestEngine.Scripting/SimplestEngine.Scripting.csproj" />
+    <Project Path="src/SimplestEngine.Servers/SimplestEngine.Servers.csproj" />
+  </Folder>
+</Solution>

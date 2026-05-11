@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>SimplestEngine.Physics.Aether</RootNamespace>
+    <AssemblyName>SimplestEngine.Physics.Aether</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Aether.Physics2D" Version="2.2.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimplestEngine.Core\SimplestEngine.Core.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Abi\SimplestEngine.Abi.csproj" />
+  </ItemGroup>
+</Project>

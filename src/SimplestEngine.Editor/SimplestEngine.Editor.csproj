@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>SimplestEngine.Editor</RootNamespace>
+    <AssemblyName>SimplestEngine.Editor</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimplestEngine.Core\SimplestEngine.Core.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Abi\SimplestEngine.Abi.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Scene\SimplestEngine.Scene.csproj" />
+  </ItemGroup>
+</Project>

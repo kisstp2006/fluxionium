@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>SimplestEngine.Runtime</RootNamespace>
+    <AssemblyName>SimplestEngine.Runtime</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SimplestEngine.Core\SimplestEngine.Core.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Abi\SimplestEngine.Abi.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Scene\SimplestEngine.Scene.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Servers\SimplestEngine.Servers.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Rendering.Veldrid\SimplestEngine.Rendering.Veldrid.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Platform\SimplestEngine.Platform.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Resources\SimplestEngine.Resources.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Scripting\SimplestEngine.Scripting.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Scripting.Lua\SimplestEngine.Scripting.Lua.csproj" />
+    <ProjectReference Include="..\SimplestEngine.Physics.Aether\SimplestEngine.Physics.Aether.csproj" />
+  </ItemGroup>
+</Project>
