@@ -2,13 +2,21 @@
   <PropertyGroup>
     <RootNamespace>SimplestEngine.Resources</RootNamespace>
     <AssemblyName>SimplestEngine.Resources</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
+    <PackageReference Include="StbTrueTypeSharp" Version="1.26.12" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\SimplestEngine.Core\SimplestEngine.Core.csproj" />
     <ProjectReference Include="..\SimplestEngine.Abi\SimplestEngine.Abi.csproj" />
     <ProjectReference Include="..\SimplestEngine.Scene\SimplestEngine.Scene.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="EmbeddedAssets\NotoSans-Regular.ttf">
+      <LogicalName>SimplestEngine.Resources.NotoSans-Regular.ttf</LogicalName>
+    </EmbeddedResource>
+    <None Include="EmbeddedAssets\NotoSans-OFL.txt" Pack="true" PackagePath="" />
   </ItemGroup>
 </Project>

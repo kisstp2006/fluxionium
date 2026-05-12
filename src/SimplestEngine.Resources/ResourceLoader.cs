@@ -48,6 +48,8 @@ public sealed class ResourceLoader : IResourceProvider
             ".tres" or ".res" => LoadTextResource(resolved),
             ".png" or ".jpg" or ".jpeg" or ".bmp" => LoadTexture(resolved),
             ".gd" or ".cs" or ".lua" => LoadScriptSource(resolved, ext),
+            ".ttf" or ".otf" => LoadDynamicFont(resolved),
+            ".fnt" => LoadAngelcodeFont(resolved),
             _ => LoadOpaque(resolved),
         };
         if (result is not null) _cache[resolved] = result;
@@ -161,6 +163,17 @@ public sealed class ResourceLoader : IResourceProvider
         };
         return new ScriptSourceResource(src, lang, absPath);
     }
+
+    private DynamicFontData LoadDynamicFont(string absPath)
+    {
+        // No texture creation here — atlases are lazy and live on the
+        // DynamicFontAtSize. We only stage the raw TTF bytes.
+        var bytes = File.ReadAllBytes(absPath);
+        return new DynamicFontData(bytes) { ResourcePath = absPath };
+    }
+
+    private BitmapFont LoadAngelcodeFont(string absPath) =>
+        BitmapFontLoader.Load(absPath, this);
 
     private IResource? LoadOpaque(string absPath)
     {

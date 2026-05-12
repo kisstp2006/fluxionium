@@ -13,6 +13,12 @@ using SixLabors.ImageSharp;
 // --- 1. Locate project ------------------------------------------------------
 BuiltInClasses.Register();
 
+// Wire the engine default font hook (Noto Sans Regular, embedded in
+// SimplestEngine.Resources) into Scene's Font abstract so Label etc. resolve
+// .GetDefault(size) to a real TTF instead of the emergency 5x7 bitmap.
+SimplestEngine.Font.DefaultFontFactory = size => EngineDefaults.GetDefaultFont(size);
+Console.WriteLine("[engine] default font: Noto Sans Regular (embedded, OFL)");
+
 var projectRoot = args.Length > 0 ? args[0]
     : Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "samples", "hello"));
 Console.WriteLine($"[engine] project root: {projectRoot}");

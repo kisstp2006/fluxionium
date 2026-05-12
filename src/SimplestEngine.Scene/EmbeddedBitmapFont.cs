@@ -1,81 +1,58 @@
+using SimplestEngine.Abi;
+
 namespace SimplestEngine;
 
 /// <summary>
-/// Built-in 5×7 ASCII bitmap font. Used by <see cref="Label"/> as the v1 fallback
-/// renderer so projects can show text without any imported font resource.
-///
-/// Each glyph is 7 rows × 5 bits; high bit (1 &lt;&lt; 4) is the leftmost column.
-/// A real Theme / DynamicFont (FreeType) pipeline lands in M6.5. The constants
-/// here are intentionally cheap so a label of ~50 characters costs ~750 rects
-/// per frame, well below the renderer's 4096-quad batch.
+/// Tiny 5×7 ASCII bitmap font built directly into the engine assembly. Used as
+/// the very last fallback when <see cref="Font.DefaultFontFactory"/> is unset
+/// (e.g. a runtime that didn't link SimplestEngine.Resources or fails to load
+/// the embedded TTF). Implements the abstract <see cref="Font"/> API by
+/// emitting one filled <c>Rect</c> per lit dot — no atlas, no TTF dependency.
+/// Mirrors Pandemonium's emergency bitmap fallback semantics.
 /// </summary>
-public static class BitmapFont
+public sealed class EmbeddedBitmapFont : Font
 {
     public const int GlyphWidth = 5;
     public const int GlyphHeight = 7;
     public const int Advance = GlyphWidth + 1;
     public const int LineHeight = GlyphHeight + 2;
 
+    /// <summary>Process-wide singleton — there is no per-instance state beyond
+    /// the glyph data which is static and immutable.</summary>
+    public static readonly EmbeddedBitmapFont Instance = new();
+
     private static readonly Dictionary<char, byte[]> _glyphs = BuildGlyphs();
 
-    /// <summary>True if the font has a glyph for the given character.</summary>
-    public static bool HasGlyph(char c) => _glyphs.ContainsKey(NormalizeKey(c));
+    private EmbeddedBitmapFont() { ResourceClass = StringName.Get("EmbeddedBitmapFont"); }
 
-    /// <summary>Width in pixels of <paramref name="text"/> at 1× scale (glyph + spacing).</summary>
-    public static int MeasureWidth(string text) =>
-        string.IsNullOrEmpty(text) ? 0 : text.Length * Advance - 1;
+    public override float GetHeight() => LineHeight;
+    public override float GetAscent() => GlyphHeight;
+    public override float GetDescent() => LineHeight - GlyphHeight;
 
-    /// <summary>
-    /// Push the rectangles representing <paramref name="text"/> to the canvas item, scaled by
-    /// <paramref name="pixelScale"/>. Each set pixel becomes one filled rect; the renderer
-    /// batches them into a single draw call.
-    /// </summary>
-    public static void Emit(
-        Abi.IRenderingServer server,
-        Rid canvasItem,
-        string text,
-        Vector2 origin,
-        Color color,
-        float pixelScale = 2f)
+    public override Vector2 GetCharSize(int codepoint, int next = 0) =>
+        new(Advance, LineHeight);
+
+    public override float DrawChar(IRenderingServer server, Rid canvasItem,
+                                   Vector2 pos, int codepoint, int next, Color modulate)
     {
-        if (string.IsNullOrEmpty(text)) return;
-        var pen = origin;
-        var step = new Vector2(Advance * pixelScale, 0f);
-
-        foreach (var raw in text)
-        {
-            var key = NormalizeKey(raw);
-            if (raw == '\n')
-            {
-                pen = new Vector2(origin.X, pen.Y + LineHeight * pixelScale);
-                continue;
-            }
-            if (_glyphs.TryGetValue(key, out var rows))
-                EmitGlyph(server, canvasItem, rows, pen, color, pixelScale);
-            pen += step;
-        }
-    }
-
-    private static void EmitGlyph(
-        Abi.IRenderingServer server,
-        Rid canvasItem,
-        byte[] rows,
-        Vector2 origin,
-        Color color,
-        float pixelScale)
-    {
-        var size = new Vector2(pixelScale, pixelScale);
+        char key = NormalizeKey((char)codepoint);
+        if (!_glyphs.TryGetValue(key, out var rows)) return Advance;
+        // Pen is at baseline; the 5x7 strip lives ascent pixels above it.
+        var origin = new Vector2(pos.X, pos.Y - GlyphHeight);
+        var pixelSize = new Vector2(1, 1);
         for (int y = 0; y < GlyphHeight && y < rows.Length; y++)
         {
-            var bits = rows[y];
+            int bits = rows[y];
             if (bits == 0) continue;
             for (int x = 0; x < GlyphWidth; x++)
             {
                 if ((bits & (1 << (GlyphWidth - 1 - x))) == 0) continue;
-                var pos = new Vector2(origin.X + x * pixelScale, origin.Y + y * pixelScale);
-                server.CanvasItemAddRect(canvasItem, new Rect2(pos, size), color);
+                server.CanvasItemAddRect(canvasItem,
+                    new Rect2(new Vector2(origin.X + x, origin.Y + y), pixelSize),
+                    modulate);
             }
         }
+        return Advance;
     }
 
     private static char NormalizeKey(char c) =>
@@ -83,9 +60,8 @@ public static class BitmapFont
 
     private static Dictionary<char, byte[]> BuildGlyphs()
     {
-        // 7-row glyphs; binary literals read top-to-bottom, left-to-right.
-        // Restricted to characters needed for typical demo strings - everything
-        // else falls back to "blank" via the dictionary miss path.
+        // 7-row glyphs; literals read top-to-bottom, left-to-right. Matches the
+        // legacy BitmapFont data exactly.
         return new Dictionary<char, byte[]>
         {
             [' '] = G(0,0,0,0,0,0,0),

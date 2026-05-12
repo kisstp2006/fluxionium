@@ -85,6 +85,10 @@ public sealed class RenderingServerDefault : IRenderingServer
         => _backend.CreateTexture(width, height, rgbaData);
     public void TextureFree(Rid rid) => _backend.DestroyTexture(rid);
     public Vector2i TextureGetSize(Rid texture) => _backend.GetTextureSize(texture);
+    public void TextureUpdate(Rid texture, int x, int y, int width, int height, ReadOnlySpan<byte> rgba)
+        => _backend.UpdateTexture(texture, x, y, width, height, rgba);
+    public void TextureSetFilter(Rid texture, bool nearest)
+        => _backend.SetTextureFilter(texture, nearest);
 
     public void Frame()
     {

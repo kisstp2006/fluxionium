@@ -48,6 +48,7 @@ public sealed class VeldridBackend : IRenderingBackend, IDisposable
     private readonly Texture _whiteTex;
     private readonly TextureView _whiteView;
     private readonly Rid _whiteRid;
+    private Sampler _linearSampler = null!;
 
     // CPU staging for the current pending batch only. Flush writes this into the
     // GPU-side VBO at offset = _quadsFlushedThisFrame * VerticesPerQuad.
@@ -129,6 +130,9 @@ public sealed class VeldridBackend : IRenderingBackend, IDisposable
         _sampler = factory.CreateSampler(new SamplerDescription(
             SamplerAddressMode.Clamp, SamplerAddressMode.Clamp, SamplerAddressMode.Clamp,
             SamplerFilter.MinPoint_MagPoint_MipPoint, null, 0, 0, 0, 0, SamplerBorderColor.TransparentBlack));
+        _linearSampler = factory.CreateSampler(new SamplerDescription(
+            SamplerAddressMode.Clamp, SamplerAddressMode.Clamp, SamplerAddressMode.Clamp,
+            SamplerFilter.MinLinear_MagLinear_MipLinear, null, 0, 0, 0, 0, SamplerBorderColor.TransparentBlack));
 
         _projSet = factory.CreateResourceSet(new ResourceSetDescription(_projLayout, _projBuf));
 
@@ -292,9 +296,32 @@ public sealed class VeldridBackend : IRenderingBackend, IDisposable
         if (rgba.Length > 0)
             _gd.UpdateTexture(tex, rgba.ToArray(), 0, 0, 0, (uint)width, (uint)height, 1, 0, 0);
         var view = factory.CreateTextureView(tex);
-        var rid = _textures.Allocate(new TextureEntry { Tex = tex, View = view, Width = width, Height = height });
+        var rid = _textures.Allocate(new TextureEntry { Tex = tex, View = view, Width = width, Height = height, Nearest = true });
         _textureSets[rid] = factory.CreateResourceSet(new ResourceSetDescription(_texLayout, view, _sampler));
         return rid;
+    }
+
+    public void UpdateTexture(Rid rid, int x, int y, int width, int height, ReadOnlySpan<byte> rgba)
+    {
+        if (!_textures.TryGet(rid, out var e) || e is null || e.Tex is null) return;
+        if (width <= 0 || height <= 0) return;
+        // Veldrid's UpdateTexture takes (x,y,z, width,height,depth, mipLevel, arrayLayer).
+        // For our 2D RGBA8 atlas it's the equivalent of glTexSubImage2D.
+        _gd.UpdateTexture(e.Tex, rgba.ToArray(),
+            (uint)x, (uint)y, 0,
+            (uint)width, (uint)height, 1,
+            0, 0);
+    }
+
+    public void SetTextureFilter(Rid rid, bool nearest)
+    {
+        if (!_textures.TryGet(rid, out var e) || e is null || e.View is null) return;
+        if (e.Nearest == nearest) return;
+        e.Nearest = nearest;
+        var factory = _gd.ResourceFactory;
+        if (_textureSets.TryGetValue(rid, out var oldSet)) oldSet.Dispose();
+        _textureSets[rid] = factory.CreateResourceSet(new ResourceSetDescription(
+            _texLayout, e.View, nearest ? _sampler : _linearSampler));
     }
 
     public void DestroyTexture(Rid rid)
@@ -331,6 +358,7 @@ public sealed class VeldridBackend : IRenderingBackend, IDisposable
         _projLayout.Dispose();
         _texLayout.Dispose();
         _sampler.Dispose();
+        _linearSampler.Dispose();
         _projBuf.Dispose();
         _vbo.Dispose();
         _ibo.Dispose();
@@ -344,4 +372,5 @@ internal sealed class TextureEntry
     public TextureView? View;
     public int Width;
     public int Height;
+    public bool Nearest = true;
 }

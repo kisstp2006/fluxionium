@@ -28,6 +28,17 @@ public interface IRenderingServer
     void TextureFree(Rid rid);
     Vector2i TextureGetSize(Rid texture);
 
+    /// <summary>Blit a sub-region of RGBA8 bytes into an existing texture (one row
+    /// = <c>width * 4</c> bytes, no padding). Used by font atlases that grow at
+    /// runtime — Pandemonium's <c>DynamicFontAtSize</c> calls the equivalent
+    /// <c>ImageTexture::set_data</c> on its shelf-pack texture every time a new
+    /// glyph is rasterized.</summary>
+    void TextureUpdate(Rid texture, int x, int y, int width, int height, ReadOnlySpan<byte> rgba);
+
+    /// <summary>Pick the magnify/minify filter for a texture. <c>true</c> = NEAREST
+    /// (pixel-perfect, default for atlases), <c>false</c> = LINEAR (smooth).</summary>
+    void TextureSetFilter(Rid texture, bool nearest);
+
     // frame
     void Frame();
     void SetClearColor(Color color);
@@ -49,4 +60,8 @@ public interface IRenderingBackend
     Rid CreateTexture(int width, int height, ReadOnlySpan<byte> rgba);
     void DestroyTexture(Rid rid);
     Vector2i GetTextureSize(Rid rid);
+    /// <summary>Partial RGBA8 blit into an existing texture (no padding between rows).</summary>
+    void UpdateTexture(Rid rid, int x, int y, int width, int height, ReadOnlySpan<byte> rgba);
+    /// <summary>Change the sampler filter of a texture between NEAREST and LINEAR.</summary>
+    void SetTextureFilter(Rid rid, bool nearest);
 }
