@@ -1,6 +1,6 @@
 # Fluxionium
 
-Private repository for this C# game engine experiment: a small **Godot-style** runtime (Veldrid + SDL2), scene tree, `project.godot` import, Lua scripting, and a sample project under `samples/godot_proj`.
+Public repository for this C# game engine experiment: a small **Godot-style** runtime (Veldrid + SDL2), scene tree, `project.godot` import, Lua scripting, and a sample project under `samples/godot_proj`.
 
 ## Requirements
 
