@@ -47,12 +47,22 @@ public static class LuaGodotBridge
 
         // --- Built-in value-type constructors --------------------------------
         // MoonSharp CallbackArguments is 0-indexed for free function calls.
-        lua.Globals["Vector2"] = DynValue.NewCallback((c, a) =>
+        var vector2Table = new Table(lua);
+        vector2Table["ZERO"] = Vec2ToLua(lua, Vector2.Zero);
+        vector2Table["ONE"] = Vec2ToLua(lua, Vector2.One);
+        vector2Table["UP"] = Vec2ToLua(lua, new Vector2(0, -1));
+        vector2Table["DOWN"] = Vec2ToLua(lua, new Vector2(0, 1));
+        vector2Table["LEFT"] = Vec2ToLua(lua, new Vector2(-1, 0));
+        vector2Table["RIGHT"] = Vec2ToLua(lua, new Vector2(1, 0));
+        var vector2Meta = new Table(lua);
+        vector2Meta["__call"] = DynValue.NewCallback((c, a) =>
         {
             float x = (float)(a.Count > 0 ? a[0].Number : 0);
             float y = (float)(a.Count > 1 ? a[1].Number : 0);
             return ToLua(lua, Variant.From(new Vector2(x, y)));
         });
+        vector2Table.MetaTable = vector2Meta;
+        lua.Globals["Vector2"] = vector2Table;
         lua.Globals["Color"] = DynValue.NewCallback((c, a) =>
         {
             float r = (float)(a.Count > 0 ? a[0].Number : 1);

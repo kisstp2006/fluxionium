@@ -100,6 +100,16 @@ public static class BuiltInClasses
         });
         ClassDB.Register(new ClassInfo
         {
+            Name = StringName.Get("TileSet"), Inherits = StringName.Get("Resource"),
+            RuntimeType = typeof(TileSet), Factory = () => new TileSet(),
+        });
+        ClassDB.Register(new ClassInfo
+        {
+            Name = StringName.Get("Animation"), Inherits = StringName.Get("Resource"),
+            RuntimeType = typeof(Animation), Factory = () => new Animation(),
+        });
+        ClassDB.Register(new ClassInfo
+        {
             Name = StringName.Get("CircleShape2D"), Inherits = StringName.Get("Shape2D"),
             RuntimeType = typeof(CircleShape2D), Factory = () => new CircleShape2D(),
         });
@@ -108,6 +118,9 @@ public static class BuiltInClasses
             Name = StringName.Get("RectangleShape2D"), Inherits = StringName.Get("Shape2D"),
             RuntimeType = typeof(RectangleShape2D), Factory = () => new RectangleShape2D(),
         });
+
+        RegisterNode2D<TileMap>("TileMap");
+        RegisterNode<AnimationPlayer>("AnimationPlayer", "Node");
     }
 
     private static void RegisterNode<T>(string name, string inherits, SignalInfo[]? signals = null)
@@ -121,6 +134,7 @@ public static class BuiltInClasses
             Factory = () => new T(),
         };
         AddNodeProperties(ci);
+        AddSpecific(ci, name);
         if (signals is not null)
             foreach (var s in signals) ci.Signals[s.Name] = s;
         ClassDB.Register(ci);
@@ -239,6 +253,12 @@ public static class BuiltInClasses
                     Getter = o => Variant.FromObject(((Sprite)o).Texture),
                     Setter = (o, v) => ((Sprite)o).Texture = v.AsRef<Texture2D>(),
                 };
+                ci.Properties[StringName.Get("normal_map")] = new PropertyInfo
+                {
+                    Name = StringName.Get("normal_map"), Type = VariantType.Object,
+                    Getter = o => Variant.FromObject(((Sprite)o).NormalMap),
+                    Setter = (o, v) => ((Sprite)o).NormalMap = v.AsRef<Texture2D>(),
+                };
                 ci.Properties[StringName.Get("centered")] = new PropertyInfo
                 {
                     Name = StringName.Get("centered"), Type = VariantType.Bool,
@@ -262,6 +282,231 @@ public static class BuiltInClasses
                     Name = StringName.Get("flip_v"), Type = VariantType.Bool,
                     Getter = o => Variant.From(((Sprite)o).FlipV),
                     Setter = (o, v) => ((Sprite)o).FlipV = v.AsBool(),
+                };
+                ci.Properties[StringName.Get("hframes")] = new PropertyInfo
+                {
+                    Name = StringName.Get("hframes"), Type = VariantType.Int,
+                    Getter = o => Variant.From(((Sprite)o).HFrames),
+                    Setter = (o, v) => ((Sprite)o).HFrames = (int)v.AsInt(),
+                };
+                ci.Properties[StringName.Get("vframes")] = new PropertyInfo
+                {
+                    Name = StringName.Get("vframes"), Type = VariantType.Int,
+                    Getter = o => Variant.From(((Sprite)o).VFrames),
+                    Setter = (o, v) => ((Sprite)o).VFrames = (int)v.AsInt(),
+                };
+                ci.Properties[StringName.Get("frame")] = new PropertyInfo
+                {
+                    Name = StringName.Get("frame"), Type = VariantType.Int,
+                    Getter = o => Variant.From(((Sprite)o).Frame),
+                    Setter = (o, v) => ((Sprite)o).Frame = (int)v.AsInt(),
+                };
+                ci.Properties[StringName.Get("frame_coords")] = new PropertyInfo
+                {
+                    Name = StringName.Get("frame_coords"), Type = VariantType.Vector2,
+                    Getter = o => Variant.From(((Sprite)o).FrameCoords),
+                    Setter = (o, v) => ((Sprite)o).FrameCoords = v.AsVector2(),
+                };
+                ci.Properties[StringName.Get("region_enabled")] = new PropertyInfo
+                {
+                    Name = StringName.Get("region_enabled"), Type = VariantType.Bool,
+                    Getter = o => Variant.From(((Sprite)o).Region),
+                    Setter = (o, v) => ((Sprite)o).Region = v.AsBool(),
+                };
+                ci.Properties[StringName.Get("region_rect")] = new PropertyInfo
+                {
+                    Name = StringName.Get("region_rect"), Type = VariantType.Rect2,
+                    Getter = o => Variant.From(((Sprite)o).RegionRect),
+                    Setter = (o, v) => ((Sprite)o).RegionRect = v.AsRect2(),
+                };
+                ci.Properties[StringName.Get("region_filter_clip")] = new PropertyInfo
+                {
+                    Name = StringName.Get("region_filter_clip"), Type = VariantType.Bool,
+                    Getter = o => Variant.From(((Sprite)o).RegionFilterClip),
+                    Setter = (o, v) => ((Sprite)o).RegionFilterClip = v.AsBool(),
+                };
+                ci.Methods[StringName.Get("is_pixel_opaque")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_pixel_opaque"),
+                    ReturnType = VariantType.Bool,
+                    ArgTypes = new[] { VariantType.Vector2 },
+                    ArgNames = new[] { "pos" },
+                    Invoker = (o, args) => Variant.From(((Sprite)o).IsPixelOpaque(args.Length > 0 ? args[0].AsVector2() : Vector2.Zero)),
+                };
+                ci.Methods[StringName.Get("get_rect")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_rect"),
+                    ReturnType = VariantType.Rect2,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).GetRect()),
+                };
+                ci.Methods[StringName.Get("set_texture")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_texture"),
+                    ArgTypes = new[] { VariantType.Object },
+                    ArgNames = new[] { "texture" },
+                    Invoker = (o, args) => { ((Sprite)o).Texture = args.Length > 0 ? args[0].AsRef<Texture2D>() : null; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_texture")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_texture"),
+                    ReturnType = VariantType.Object,
+                    Invoker = (o, args) => Variant.FromObject(((Sprite)o).Texture),
+                };
+                ci.Methods[StringName.Get("set_normal_map")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_normal_map"),
+                    ArgTypes = new[] { VariantType.Object },
+                    ArgNames = new[] { "normal_map" },
+                    Invoker = (o, args) => { ((Sprite)o).NormalMap = args.Length > 0 ? args[0].AsRef<Texture2D>() : null; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_normal_map")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_normal_map"),
+                    ReturnType = VariantType.Object,
+                    Invoker = (o, args) => Variant.FromObject(((Sprite)o).NormalMap),
+                };
+                ci.Methods[StringName.Get("set_centered")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_centered"),
+                    ArgTypes = new[] { VariantType.Bool },
+                    ArgNames = new[] { "centered" },
+                    Invoker = (o, args) => { ((Sprite)o).Centered = args.Length > 0 && args[0].AsBool(); return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("is_centered")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_centered"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).Centered),
+                };
+                ci.Methods[StringName.Get("set_offset")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_offset"),
+                    ArgTypes = new[] { VariantType.Vector2 },
+                    ArgNames = new[] { "offset" },
+                    Invoker = (o, args) => { ((Sprite)o).Offset = args.Length > 0 ? args[0].AsVector2() : Vector2.Zero; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_offset")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_offset"),
+                    ReturnType = VariantType.Vector2,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).Offset),
+                };
+                ci.Methods[StringName.Get("set_flip_h")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_flip_h"),
+                    ArgTypes = new[] { VariantType.Bool },
+                    ArgNames = new[] { "flip_h" },
+                    Invoker = (o, args) => { ((Sprite)o).FlipH = args.Length > 0 && args[0].AsBool(); return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("is_flipped_h")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_flipped_h"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).FlipH),
+                };
+                ci.Methods[StringName.Get("set_flip_v")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_flip_v"),
+                    ArgTypes = new[] { VariantType.Bool },
+                    ArgNames = new[] { "flip_v" },
+                    Invoker = (o, args) => { ((Sprite)o).FlipV = args.Length > 0 && args[0].AsBool(); return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("is_flipped_v")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_flipped_v"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).FlipV),
+                };
+                ci.Methods[StringName.Get("set_region")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_region"),
+                    ArgTypes = new[] { VariantType.Bool },
+                    ArgNames = new[] { "enabled" },
+                    Invoker = (o, args) => { ((Sprite)o).Region = args.Length > 0 && args[0].AsBool(); return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("is_region")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_region"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).Region),
+                };
+                ci.Methods[StringName.Get("set_region_rect")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_region_rect"),
+                    ArgTypes = new[] { VariantType.Rect2 },
+                    ArgNames = new[] { "rect" },
+                    Invoker = (o, args) => { ((Sprite)o).RegionRect = args.Length > 0 ? args[0].AsRect2() : default; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_region_rect")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_region_rect"),
+                    ReturnType = VariantType.Rect2,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).RegionRect),
+                };
+                ci.Methods[StringName.Get("set_region_filter_clip")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_region_filter_clip"),
+                    ArgTypes = new[] { VariantType.Bool },
+                    ArgNames = new[] { "enabled" },
+                    Invoker = (o, args) => { ((Sprite)o).RegionFilterClip = args.Length > 0 && args[0].AsBool(); return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("is_region_filter_clip_enabled")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_region_filter_clip_enabled"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).RegionFilterClip),
+                };
+                ci.Methods[StringName.Get("set_frame")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_frame"),
+                    ArgTypes = new[] { VariantType.Int },
+                    ArgNames = new[] { "frame" },
+                    Invoker = (o, args) => { ((Sprite)o).Frame = args.Length > 0 ? (int)args[0].AsInt() : 0; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_frame")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_frame"),
+                    ReturnType = VariantType.Int,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).Frame),
+                };
+                ci.Methods[StringName.Get("set_frame_coords")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_frame_coords"),
+                    ArgTypes = new[] { VariantType.Vector2 },
+                    ArgNames = new[] { "coords" },
+                    Invoker = (o, args) => { ((Sprite)o).FrameCoords = args.Length > 0 ? args[0].AsVector2() : Vector2.Zero; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_frame_coords")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_frame_coords"),
+                    ReturnType = VariantType.Vector2,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).FrameCoords),
+                };
+                ci.Methods[StringName.Get("set_hframes")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_hframes"),
+                    ArgTypes = new[] { VariantType.Int },
+                    ArgNames = new[] { "hframes" },
+                    Invoker = (o, args) => { ((Sprite)o).HFrames = args.Length > 0 ? (int)args[0].AsInt() : 1; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_hframes")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_hframes"),
+                    ReturnType = VariantType.Int,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).HFrames),
+                };
+                ci.Methods[StringName.Get("set_vframes")] = new MethodInfo
+                {
+                    Name = StringName.Get("set_vframes"),
+                    ArgTypes = new[] { VariantType.Int },
+                    ArgNames = new[] { "vframes" },
+                    Invoker = (o, args) => { ((Sprite)o).VFrames = args.Length > 0 ? (int)args[0].AsInt() : 1; return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("get_vframes")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_vframes"),
+                    ReturnType = VariantType.Int,
+                    Invoker = (o, args) => Variant.From(((Sprite)o).VFrames),
                 };
                 break;
             case "Label":
@@ -300,6 +545,105 @@ public static class BuiltInClasses
                     Setter = (o, v) => ((Camera2D)o).Current = v.AsBool(),
                 };
                 break;
+            case "TileMap":
+                ci.Properties[StringName.Get("tile_set")] = new PropertyInfo
+                {
+                    Name = StringName.Get("tile_set"), Type = VariantType.Object,
+                    Getter = o => Variant.FromObject(((TileMap)o).TileSet),
+                    Setter = (o, v) => ((TileMap)o).TileSet = v.AsRef<TileSet>(),
+                };
+                ci.Properties[StringName.Get("cell_size")] = new PropertyInfo
+                {
+                    Name = StringName.Get("cell_size"), Type = VariantType.Vector2,
+                    Getter = o => Variant.From(((TileMap)o).CellSize),
+                    Setter = (o, v) => ((TileMap)o).CellSize = v.AsVector2(),
+                };
+                ci.Properties[StringName.Get("tile_data")] = new PropertyInfo
+                {
+                    Name = StringName.Get("tile_data"), Type = VariantType.Array,
+                    Getter = o => Variant.FromArray(((TileMap)o).TileData),
+                    Setter = (o, v) => ((TileMap)o).TileData = v.AsObject() as int[] ?? Array.Empty<int>(),
+                };
+                break;
+            case "KinematicBody2D":
+            case "CharacterBody2D":
+                ci.Properties[StringName.Get("safe_margin")] = new PropertyInfo
+                {
+                    Name = StringName.Get("safe_margin"), Type = VariantType.Float,
+                    Getter = o => Variant.From(((KinematicBody2D)o).SafeMargin),
+                    Setter = (o, v) => ((KinematicBody2D)o).SafeMargin = (float)v.AsFloat(),
+                };
+                ci.Methods[StringName.Get("move_and_slide")] = new MethodInfo
+                {
+                    Name = StringName.Get("move_and_slide"),
+                    ReturnType = VariantType.Vector2,
+                    ArgTypes = new[] { VariantType.Vector2, VariantType.Vector2, VariantType.Bool, VariantType.Int, VariantType.Float, VariantType.Bool },
+                    ArgNames = new[] { "linear_velocity", "up_direction", "stop_on_slope", "max_slides", "floor_max_angle", "infinite_inertia" },
+                    Invoker = (o, args) =>
+                    {
+                        if (o is CharacterBody2D cb && args.Length == 0)
+                            return Variant.From(cb.MoveAndSlide());
+                        var velocity = args.Length > 0 ? args[0].AsVector2() : (o is CharacterBody2D c ? c.Velocity : Vector2.Zero);
+                        var up = args.Length > 1 ? args[1].AsVector2() : new Vector2(0, -1);
+                        var stopOnSlope = args.Length > 2 && args[2].AsBool();
+                        var maxSlides = args.Length > 3 ? (int)args[3].AsInt() : 4;
+                        var floorMaxAngle = args.Length > 4 ? (float)args[4].AsFloat() : 0.7853982f;
+                        var infiniteInertia = args.Length <= 5 || args[5].AsBool();
+                        return Variant.From(((KinematicBody2D)o).MoveAndSlide(velocity, up, stopOnSlope, maxSlides, floorMaxAngle, infiniteInertia));
+                    },
+                };
+                ci.Methods[StringName.Get("move_and_slide_with_snap")] = new MethodInfo
+                {
+                    Name = StringName.Get("move_and_slide_with_snap"),
+                    ReturnType = VariantType.Vector2,
+                    ArgTypes = new[] { VariantType.Vector2, VariantType.Vector2, VariantType.Vector2, VariantType.Bool, VariantType.Int, VariantType.Float, VariantType.Bool },
+                    ArgNames = new[] { "linear_velocity", "snap", "up_direction", "stop_on_slope", "max_slides", "floor_max_angle", "infinite_inertia" },
+                    Invoker = (o, args) =>
+                    {
+                        var velocity = args.Length > 0 ? args[0].AsVector2() : Vector2.Zero;
+                        var snap = args.Length > 1 ? args[1].AsVector2() : Vector2.Zero;
+                        var up = args.Length > 2 ? args[2].AsVector2() : new Vector2(0, -1);
+                        var stopOnSlope = args.Length > 3 && args[3].AsBool();
+                        var maxSlides = args.Length > 4 ? (int)args[4].AsInt() : 4;
+                        var floorMaxAngle = args.Length > 5 ? (float)args[5].AsFloat() : 0.7853982f;
+                        var infiniteInertia = args.Length <= 6 || args[6].AsBool();
+                        return Variant.From(((KinematicBody2D)o).MoveAndSlideWithSnap(velocity, snap, up, stopOnSlope, maxSlides, floorMaxAngle, infiniteInertia));
+                    },
+                };
+                ci.Methods[StringName.Get("is_on_floor")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_on_floor"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((KinematicBody2D)o).IsOnFloor()),
+                };
+                ci.Methods[StringName.Get("is_on_wall")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_on_wall"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((KinematicBody2D)o).IsOnWall()),
+                };
+                ci.Methods[StringName.Get("is_on_ceiling")] = new MethodInfo
+                {
+                    Name = StringName.Get("is_on_ceiling"),
+                    ReturnType = VariantType.Bool,
+                    Invoker = (o, args) => Variant.From(((KinematicBody2D)o).IsOnCeiling()),
+                };
+                ci.Methods[StringName.Get("get_floor_normal")] = new MethodInfo
+                {
+                    Name = StringName.Get("get_floor_normal"),
+                    ReturnType = VariantType.Vector2,
+                    Invoker = (o, args) => Variant.From(((KinematicBody2D)o).GetFloorNormal()),
+                };
+                if (name == "CharacterBody2D")
+                {
+                    ci.Properties[StringName.Get("velocity")] = new PropertyInfo
+                    {
+                        Name = StringName.Get("velocity"), Type = VariantType.Vector2,
+                        Getter = o => Variant.From(((CharacterBody2D)o).Velocity),
+                        Setter = (o, v) => ((CharacterBody2D)o).Velocity = v.AsVector2(),
+                    };
+                }
+                break;
             case "Timer":
                 ci.Properties[StringName.Get("wait_time")] = new PropertyInfo
                 {
@@ -318,6 +662,53 @@ public static class BuiltInClasses
                     Name = StringName.Get("autostart"), Type = VariantType.Bool,
                     Getter = o => Variant.From(((Timer)o).Autostart),
                     Setter = (o, v) => ((Timer)o).Autostart = v.AsBool(),
+                };
+                break;
+            case "AnimationPlayer":
+                ci.Properties[StringName.Get("autoplay")] = new PropertyInfo
+                {
+                    Name = StringName.Get("autoplay"), Type = VariantType.String,
+                    Getter = o => Variant.From(((AnimationPlayer)o).Autoplay),
+                    Setter = (o, v) => ((AnimationPlayer)o).Autoplay = v.AsString(),
+                };
+                ci.Properties[StringName.Get("playback_process_mode")] = new PropertyInfo
+                {
+                    Name = StringName.Get("playback_process_mode"), Type = VariantType.Int,
+                    Getter = o => Variant.From(((AnimationPlayer)o).PlaybackProcessMode),
+                    Setter = (o, v) => ((AnimationPlayer)o).PlaybackProcessMode = (int)v.AsInt(),
+                };
+                ci.Methods[StringName.Get("play")] = new MethodInfo
+                {
+                    Name = StringName.Get("play"),
+                    ArgTypes = new[] { VariantType.StringName },
+                    ArgNames = new[] { "name" },
+                    Invoker = (o, args) =>
+                    {
+                        var nameArg = args.Length > 0
+                            ? (args[0].Type == VariantType.StringName ? args[0].AsStringName() : StringName.Get(args[0].AsString()))
+                            : StringName.Empty;
+                        ((AnimationPlayer)o).Play(nameArg);
+                        return Variant.Nil;
+                    },
+                };
+                ci.Methods[StringName.Get("stop")] = new MethodInfo
+                {
+                    Name = StringName.Get("stop"),
+                    Invoker = (o, args) => { ((AnimationPlayer)o).Stop(); return Variant.Nil; },
+                };
+                ci.Methods[StringName.Get("has_animation")] = new MethodInfo
+                {
+                    Name = StringName.Get("has_animation"),
+                    ReturnType = VariantType.Bool,
+                    ArgTypes = new[] { VariantType.StringName },
+                    ArgNames = new[] { "name" },
+                    Invoker = (o, args) =>
+                    {
+                        var nameArg = args.Length > 0
+                            ? (args[0].Type == VariantType.StringName ? args[0].AsStringName() : StringName.Get(args[0].AsString()))
+                            : StringName.Empty;
+                        return Variant.From(((AnimationPlayer)o).HasAnimation(nameArg));
+                    },
                 };
                 break;
         }

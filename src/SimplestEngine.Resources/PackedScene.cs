@@ -209,9 +209,80 @@ public sealed class PackedScene : Resource
         foreach (var sub in _doc.SubResources)
         {
             var id = sub.Attributes.GetValueOrDefault("id") ?? "";
-            // v1: store the raw section so a typed loader can later reify shapes / textures.
-            _subResources[id] = Variant.FromObject(sub);
+            _subResources[id] = Variant.FromObject((object?)MaterializeSubResource(sub) ?? sub);
         }
+    }
+
+    private Resource? MaterializeSubResource(Section sub)
+    {
+        var type = sub.Attributes.GetValueOrDefault("type");
+        return type switch
+        {
+            "RectangleShape2D" => new RectangleShape2D
+            {
+                Extents = sub.Properties.TryGetValue("extents", out var e)
+                    ? ConvertValue(e).AsVector2()
+                    : new Vector2(10, 10),
+            },
+            "CircleShape2D" => new CircleShape2D
+            {
+                Radius = sub.Properties.TryGetValue("radius", out var r)
+                    ? (float)ConvertValue(r).AsFloat()
+                    : 10f,
+            },
+            "TileSet" => MaterializeTileSet(sub),
+            "Animation" => MaterializeAnimation(sub),
+            _ => null,
+        };
+    }
+
+    private TileSet MaterializeTileSet(Section sub)
+    {
+        var tileSet = new TileSet();
+        foreach (var tileId in sub.Properties.Keys
+            .Select(k => k.Split('/', 2)[0])
+            .Where(k => int.TryParse(k, out _))
+            .Distinct())
+        {
+            var id = int.Parse(tileId, CultureInfo.InvariantCulture);
+            Texture2D? texture = null;
+            Rect2 region = default;
+            if (sub.Properties.TryGetValue($"{tileId}/texture", out var tex))
+                texture = ConvertValue(tex).AsRef<Texture2D>();
+            if (sub.Properties.TryGetValue($"{tileId}/region", out var reg))
+                region = ConvertValue(reg).AsRect2();
+            tileSet.SetTile(id, texture, region);
+        }
+        return tileSet;
+    }
+
+    private Animation MaterializeAnimation(Section sub)
+    {
+        var animation = new Animation
+        {
+            Length = sub.Properties.TryGetValue("length", out var len) ? (float)ConvertValue(len).AsFloat() : 1f,
+            Loop = sub.Properties.TryGetValue("loop", out var loop) && ConvertValue(loop).AsBool(),
+        };
+        if (sub.Properties.TryGetValue("resource_name", out var rn))
+            animation.ResourceName = StringName.Get(rn.AsString());
+
+        for (int i = 0; ; i++)
+        {
+            if (!sub.Properties.TryGetValue($"tracks/{i}/type", out var typeVal)) break;
+            if (typeVal.AsString() != "value") continue;
+            if (!sub.Properties.TryGetValue($"tracks/{i}/path", out var pathVal)) continue;
+            if (!sub.Properties.TryGetValue($"tracks/{i}/keys", out var keysVal)) continue;
+            if (keysVal.Kind != TscnValue.ValueKind.Dict || keysVal.Dict is null) continue;
+
+            var track = new ValueTrack { Path = ConvertValue(pathVal).AsRef<NodePath>() ?? new NodePath(".") };
+            if (keysVal.Dict.TryGetValue("times", out var times))
+                track.Times = ConvertFloatArray(times);
+            if (keysVal.Dict.TryGetValue("values", out var values))
+                track.Values = ConvertVariantArray(values);
+            animation.ValueTracks.Add(track);
+        }
+
+        return animation;
     }
 
     private Node InstantiateByType(string type)
@@ -318,6 +389,13 @@ public sealed class PackedScene : Resource
 
     private void ApplyProperty(Node node, string key, TscnValue val)
     {
+        if (node is AnimationPlayer player && key.StartsWith("anims/", StringComparison.Ordinal))
+        {
+            if (ConvertValue(val).AsObject() is Animation animation)
+                player.AddAnimation(StringName.Get(key["anims/".Length..]), animation);
+            return;
+        }
+
         var sn = StringName.Get(key);
         var variant = ConvertValue(val);
         if (node.Set(sn, variant)) return;
@@ -342,7 +420,7 @@ public sealed class PackedScene : Resource
             case TscnValue.ValueKind.Number: return Variant.From(val.Number);
             case TscnValue.ValueKind.Bool: return Variant.From(val.Bool);
             case TscnValue.ValueKind.String: return Variant.From(val.Text ?? "");
-            case TscnValue.ValueKind.Array: return Variant.Nil; // arrays only used for groups currently
+            case TscnValue.ValueKind.Array: return Variant.FromArray(ConvertVariantArray(val));
             case TscnValue.ValueKind.Dict: return Variant.Nil;  // dicts pass-through ignored
             case TscnValue.ValueKind.Call:
                 return val.CallName switch
@@ -360,6 +438,13 @@ public sealed class PackedScene : Resource
                         Variant.From(new Rect2(
                             (float)val.CallArgs[0].AsNumber(), (float)val.CallArgs[1].AsNumber(),
                             (float)val.CallArgs[2].AsNumber(), (float)val.CallArgs[3].AsNumber())),
+                    "Transform2D" when val.CallArgs?.Count >= 6 =>
+                        Variant.FromObject(new Transform2D(
+                            new Vector2((float)val.CallArgs[0].AsNumber(), (float)val.CallArgs[1].AsNumber()),
+                            new Vector2((float)val.CallArgs[2].AsNumber(), (float)val.CallArgs[3].AsNumber()),
+                            new Vector2((float)val.CallArgs[4].AsNumber(), (float)val.CallArgs[5].AsNumber()))),
+                    "PoolIntArray" => Variant.FromArray(ConvertIntArray(val)),
+                    "PoolRealArray" => Variant.FromArray(ConvertFloatArray(val)),
                     "NodePath" when val.CallArgs?.Count >= 1 =>
                         Variant.FromNodePath(new NodePath(val.CallArgs[0].AsString())),
                     "ExtResource" when val.CallArgs?.Count >= 1 =>
@@ -397,8 +482,30 @@ public sealed class PackedScene : Resource
         if (t == typeof(Rect2)) return v.AsRect2();
         if (t == typeof(StringName)) return v.AsStringName();
         if (t == typeof(NodePath)) return v.AsRef<NodePath>();
+        if (t == typeof(int[])) return v.AsObject() as int[];
+        if (t == typeof(float[])) return v.AsObject() as float[];
         if (typeof(IResource).IsAssignableFrom(t)) return v.AsObject();
         return null;
+    }
+
+    private static int[] ConvertIntArray(TscnValue v)
+    {
+        var src = v.Kind == TscnValue.ValueKind.Call ? v.CallArgs : v.Array;
+        if (src is null) return Array.Empty<int>();
+        return src.Select(x => (int)x.AsNumber()).ToArray();
+    }
+
+    private Variant[] ConvertVariantArray(TscnValue v)
+    {
+        if (v.Kind != TscnValue.ValueKind.Array || v.Array is null) return Array.Empty<Variant>();
+        return v.Array.Select(ConvertValue).ToArray();
+    }
+
+    private static float[] ConvertFloatArray(TscnValue v)
+    {
+        var src = v.Kind == TscnValue.ValueKind.Call ? v.CallArgs : v.Array;
+        if (src is null) return Array.Empty<float>();
+        return src.Select(x => (float)x.AsNumber()).ToArray();
     }
 
     private static string PascalCase(string snake)

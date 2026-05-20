@@ -113,13 +113,97 @@ public class RigidBody2D : PhysicsBody2D
 [GDClass("KinematicBody2D", "PhysicsBody2D")]
 public class KinematicBody2D : PhysicsBody2D
 {
+    private Vector2 _lastVelocity;
+    private Vector2 _floorNormal = new(0, -1);
+    private bool _onFloor;
+    private bool _onWall;
+    private bool _onCeiling;
+    private float _safeMargin = 0.08f;
+
     protected override BodyType GetBodyType() => BodyType.Kinematic;
 
     /// <summary>Godot parity: move_and_slide. Returns the remaining velocity.</summary>
-    public Vector2 MoveAndSlide(Vector2 velocity, Vector2? upDirection = null)
+    public Vector2 MoveAndSlide(
+        Vector2 velocity,
+        Vector2? upDirection = null,
+        bool stopOnSlope = false,
+        int maxSlides = 4,
+        float floorMaxAngle = 0.7853982f,
+        bool infiniteInertia = true)
     {
+        _lastVelocity = velocity;
         Physics?.BodySetLinearVelocity(PhysicsBodyRid, velocity);
+        RefreshContactState(upDirection ?? new Vector2(0, -1), floorMaxAngle);
         return velocity;
+    }
+
+    /// <summary>Godot 3 parity: move_and_slide_with_snap.</summary>
+    public Vector2 MoveAndSlideWithSnap(
+        Vector2 velocity,
+        Vector2 snap,
+        Vector2? upDirection = null,
+        bool stopOnSlope = false,
+        int maxSlides = 4,
+        float floorMaxAngle = 0.7853982f,
+        bool infiniteInertia = true)
+    {
+        var up = upDirection ?? new Vector2(0, -1);
+        var result = MoveAndSlide(velocity, up, stopOnSlope, maxSlides, floorMaxAngle, infiniteInertia);
+
+        if (snap != Vector2.Zero && Physics is not null)
+        {
+            var target = GlobalPosition + snap;
+            if (Physics.Raycast(GlobalPosition, target, CollisionMask, out _, out var normal, out _))
+            {
+                _onFloor = IsFloorNormal(normal, up, floorMaxAngle);
+                if (_onFloor) _floorNormal = normal == Vector2.Zero ? up : normal;
+            }
+        }
+
+        return result;
+    }
+
+    public bool IsOnFloor() => _onFloor;
+    public bool IsOnWall() => _onWall;
+    public bool IsOnCeiling() => _onCeiling;
+    public Vector2 GetFloorNormal() => _floorNormal;
+    public float SafeMargin { get => _safeMargin; set => _safeMargin = MathF.Max(0f, value); }
+
+    public override void _PhysicsProcess(float delta)
+    {
+        base._PhysicsProcess(delta);
+        RefreshContactState(new Vector2(0, -1), 0.7853982f);
+    }
+
+    private void RefreshContactState(Vector2 upDirection, float floorMaxAngle)
+    {
+        _onFloor = _onWall = _onCeiling = false;
+        _floorNormal = upDirection;
+        if (Physics is null) return;
+
+        var pos = GlobalPosition;
+        var probe = MathF.Max(2f, _safeMargin * 16f);
+        if (Physics.Raycast(pos, pos - upDirection * probe, CollisionMask, out _, out var floorNormal, out _))
+        {
+            _onFloor = IsFloorNormal(floorNormal, upDirection, floorMaxAngle);
+            _floorNormal = floorNormal == Vector2.Zero ? upDirection : floorNormal;
+        }
+        if (Physics.Raycast(pos, pos + upDirection * probe, CollisionMask, out _, out _, out _))
+            _onCeiling = true;
+
+        var right = new Vector2(-upDirection.Y, upDirection.X);
+        _onWall =
+            Physics.Raycast(pos, pos + right * probe, CollisionMask, out _, out _, out _) ||
+            Physics.Raycast(pos, pos - right * probe, CollisionMask, out _, out _, out _);
+    }
+
+    private static bool IsFloorNormal(Vector2 normal, Vector2 upDirection, float floorMaxAngle)
+    {
+        if (normal == Vector2.Zero) return true;
+        var n = normal.Normalized();
+        var up = upDirection == Vector2.Zero ? new Vector2(0, -1) : upDirection.Normalized();
+        var dot = Math.Clamp(n.Dot(up), -1f, 1f);
+        return MathF.Acos(dot) <= floorMaxAngle;
     }
 }
 
@@ -168,6 +252,8 @@ public sealed class CollisionShape2D : Node2D
 {
     public Shape2D? Shape { get; set; }
     public bool Disabled { get; set; }
+    public bool OneWayCollision { get; set; }
+    public float OneWayCollisionMargin { get; set; } = 1f;
     private Rid _shapeRid;
     private Rid _fixture;
     private CollisionObject2D? _attachedTo;
